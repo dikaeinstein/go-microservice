@@ -1,0 +1,7 @@
+version: '3.7'
+services:
+  testserver:
+    image: testserver
+  curl:
+    image: appropriate/curl
+    entrypoint: sh -c  "sleep 3 && curl -s testserver:8080/helloworld -d '{\"name\":\"Dika\"}'"

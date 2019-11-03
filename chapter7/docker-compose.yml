@@ -1,0 +1,56 @@
+version: '3.1'
+
+services:
+  kittenserver:
+    build: ./
+    image: kittenserver:logging
+    command: sh -c 'sleep 3 && /kittenserver'
+    ports:
+      - 8091:8091
+    environment:
+      - "STATSD=statsd:9125"
+      - "LOGSTASH=logstash:5000"
+    depends_on:
+      - statsd
+      - logstash
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - 9090:9090
+  statsd:
+    image: prom/statsd-exporter
+    depends_on:
+     - prometheus
+  graphana:
+    image: grafana/grafana
+    ports:
+      - 3000:3000
+    depends_on:
+      - prometheus
+  elasticsearch:
+    image: elasticsearch:7.3.2
+    ports:
+      - 9200:9200
+      - 9300:9300
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+  kibana:
+    image: kibana:7.3.2
+    ports:
+      - 5601:5601
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+  logstash:
+    image: logstash:7.3.2
+    command: sh -c "sleep 10 && logstash -f /etc/logstash/conf.d/"
+    ports:
+      - 5000:5000
+    volumes:
+      - ./logstash.conf:/etc/logstash/conf.d/logstash.conf
+    depends_on:
+      - elasticsearch
